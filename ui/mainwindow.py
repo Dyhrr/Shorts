@@ -7,9 +7,12 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QFrame,
     QApplication,
+    QMessageBox,
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPalette, QColor, QFont
+from PySide6.QtGui import QFont
+
+from core import generate_short
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -64,8 +67,16 @@ class MainWindow(QWidget):
             setattr(self, f"{clip_type}_clip", file_path)
 
     def create_short(self):
-        # This would trigger the main logic
+        try:
+            top = getattr(self, "top_clip")
+            bottom = getattr(self, "bottom_clip")
+        except AttributeError:
+            QMessageBox.warning(self, "Missing Clips", "Load both top and bottom clips first.")
+            return
+
         print("Generating short...")
+        output = generate_short(top, bottom)
+        QMessageBox.information(self, "Done", f"Created {output}")
 
     def stylesheet(self):
         return """
