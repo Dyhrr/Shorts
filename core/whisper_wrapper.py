@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 from typing import List
 
@@ -21,9 +22,13 @@ def transcribe(
         Whisper model size. Defaults to ``"base"``.
     device: str, optional
         Device for inference (``"cpu"`` or ``"cuda"``/``"auto"``). Defaults to
-        ``"auto"``. If initialization fails (e.g., missing GPU libraries), the
+        ``"auto"``. Set the environment variable ``WHISPER_DEVICE`` to override
+        this value. If initialization fails (e.g., missing GPU libraries), the
         function falls back to CPU.
     """
+    env_device = os.getenv("WHISPER_DEVICE")
+    if env_device:
+        device = env_device
     logging.info("Transcribing %s", path)
     cache_key = (model_size, device)
     if cache_key not in _model_cache:
