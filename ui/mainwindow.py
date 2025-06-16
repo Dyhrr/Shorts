@@ -1,8 +1,8 @@
 from pathlib import Path
-from PySide6.QtCore import Qt, QThread, Signal
+
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
     QApplication,
-    QFileDialog,
     QLabel,
     QLineEdit,
     QMainWindow,
@@ -14,15 +14,24 @@ from PySide6.QtWidgets import (
     QComboBox,
 )
 
-from core.whisper_wrapper import transcribe, save_srt
+from core.whisper_wrapper import transcribe
 from core.ffmpeg_handler import build_stack
+from core.subtitle_utils import save_srt
+from core.utils import probe_duration
 
 
 class FileDropEdit(QLineEdit):
+    file_dropped = Signal(str)
+
     def __init__(self, placeholder: str):
         super().__init__()
         self.setPlaceholderText(placeholder)
         self.setAcceptDrops(True)
+        self.textChanged.connect(self._emit_path)
+
+    def _emit_path(self, text: str) -> None:
+        if Path(text).exists():
+            self.file_dropped.emit(text)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -43,20 +52,24 @@ class Worker(QThread):
     progress = Signal(int)
     finished = Signal(str)
 
-    def __init__(self, top: Path, bottom: Path, font_size: int, font_color: str):
+    def __init__(self, top: Path, bottom: Path, font_size: int, font_color: str, subtitle: Path | None):
         super().__init__()
         self.top = top
         self.bottom = bottom
         self.font_size = font_size
         self.font_color = font_color
+        self.subtitle = subtitle
 
     def run(self):
         try:
-            self.progress.emit(10)
-            lines = transcribe(self.top)
-            self.progress.emit(40)
-            srt_path = self.top.with_suffix(".srt")
-            save_srt(lines, srt_path)
+            if self.subtitle and self.subtitle.exists():
+                srt_path = self.subtitle
+            else:
+                self.progress.emit(10)
+                lines = transcribe(self.top)
+                self.progress.emit(40)
+                srt_path = self.top.with_suffix(".srt")
+                save_srt(lines, srt_path)
             self.progress.emit(60)
             out_path = self.top.with_name("output.mp4")
             build_stack(self.top, self.bottom, srt_path, out_path, self.font_size, self.font_color)
@@ -73,23 +86,40 @@ class MainWindow(QMainWindow):
 
         self.top_edit = FileDropEdit("Drop top clip here")
         self.bottom_edit = FileDropEdit("Drop bottom clip here")
+        self.subtitle_edit = FileDropEdit("Optional subtitle file")
+
+        self.top_edit.file_dropped.connect(self.update_durations)
+        self.bottom_edit.file_dropped.connect(self.update_durations)
+
+        self.top_dur_label = QLabel("")
+        self.bottom_dur_label = QLabel("")
+
         self.font_size = QComboBox()
         self.font_size.addItems(["24", "30", "36", "48"])
         self.font_color = QComboBox()
         self.font_color.addItems(["white", "yellow", "red", "black"])
 
         self.run_btn = QPushButton("Create")
-        self.theme_btn = QPushButton("Dark Mode")
-        self.theme_btn.clicked.connect(self.toggle_theme)
-        self.dark = False
         self.run_btn.clicked.connect(self.start_process)
+
+        self.theme_btn = QPushButton("Light Mode")
+        self.dark = True
+        self.toggle_theme()
+        self.theme_btn.clicked.connect(self.toggle_theme)
+
         self.progress = QProgressBar()
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(6)
         layout.addWidget(QLabel("Top Clip"))
         layout.addWidget(self.top_edit)
+        layout.addWidget(self.top_dur_label)
         layout.addWidget(QLabel("Bottom Clip"))
         layout.addWidget(self.bottom_edit)
+        layout.addWidget(self.bottom_dur_label)
+        layout.addWidget(QLabel("Subtitle (.srt)"))
+        layout.addWidget(self.subtitle_edit)
 
         opts = QHBoxLayout()
         opts.addWidget(QLabel("Font Size"))
@@ -105,14 +135,23 @@ class MainWindow(QMainWindow):
         container.setLayout(layout)
         self.setCentralWidget(container)
 
+    def update_durations(self, _=None):
+        top = Path(self.top_edit.text())
+        bottom = Path(self.bottom_edit.text())
+        if top.exists():
+            self.top_dur_label.setText(f"Duration: {probe_duration(top):.1f}s")
+        if bottom.exists():
+            self.bottom_dur_label.setText(f"Duration: {probe_duration(bottom):.1f}s")
+
     def start_process(self):
         top = Path(self.top_edit.text())
         bottom = Path(self.bottom_edit.text())
+        subtitle = Path(self.subtitle_edit.text()) if self.subtitle_edit.text() else None
         if not top.exists() or not bottom.exists():
             return
         size = int(self.font_size.currentText())
         color = self.font_color.currentText()
-        self.worker = Worker(top, bottom, size, color)
+        self.worker = Worker(top, bottom, size, color, subtitle)
         self.worker.progress.connect(self.progress.setValue)
         self.worker.finished.connect(self.done)
         self.run_btn.setEnabled(False)
@@ -124,18 +163,18 @@ class MainWindow(QMainWindow):
 
     def toggle_theme(self):
         if self.dark:
-            self.setStyleSheet("")
-            self.theme_btn.setText("Dark Mode")
-            self.dark = False
-        else:
             self.setStyleSheet("background-color: #333; color: #eee;")
             self.theme_btn.setText("Light Mode")
+            self.dark = False
+        else:
+            self.setStyleSheet("")
+            self.theme_btn.setText("Dark Mode")
             self.dark = True
 
 
 def run_app():
     app = QApplication([])
     win = MainWindow()
-    win.resize(400, 300)
+    win.resize(400, 400)
     win.show()
     app.exec()
