@@ -15,8 +15,11 @@ def build_stack(
 ) -> None:
     """Create the stacked video with subtitles burned into the top clip."""
     duration = probe_duration(top)
+    sub_path = _escape_path(subtitle)
+    # Use as_posix() so ffmpeg sees forward slashes.  Quotes are removed and the
+    # drive colon is escaped to stop ffmpeg treating it as an option separator.
     filter_complex = (
-        f"[0:v]scale=1080:-2,crop=1080:960,subtitles='{_escape_path(subtitle)}':force_style='Fontsize={font_size},PrimaryColour=&H{_color_hex(font_color)}&,Alignment=2,OutlineColour=&H000000&,BorderStyle=1,Outline=2'[top];"
+        f"[0:v]scale=1080:-2,crop=1080:960,subtitles={sub_path}:force_style='Fontsize={font_size},PrimaryColour=&H{_color_hex(font_color)}&,Alignment=2,OutlineColour=&H000000&,BorderStyle=1,Outline=2'[top];"
         f"[1:v]loop=loop=-1:size=1:start=0,trim=duration={duration},setpts=PTS-STARTPTS,scale=1080:-2,crop=1080:960[bottom];"
         f"[top][bottom]vstack=inputs=2[v]"
     )
@@ -73,4 +76,9 @@ def _color_hex(name: str) -> str:
 def _escape_path(path: Path) -> str:
     """Return POSIX path with characters escaped for ffmpeg filter usage."""
     p = path.as_posix()
-    return p.replace("'", "\\'")
+    # Escape the drive colon and any quote characters so ffmpeg doesn't treat
+    # them as filter separators.
+    p = p.replace(":", r"\:")
+    p = p.replace("'", r"\'")
+    p = p.replace(" ", r"\ ")
+    return p
