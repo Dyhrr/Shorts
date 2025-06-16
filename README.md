@@ -17,13 +17,15 @@ It uses [`faster-whisper`](https://github.com/guillaumekln/faster-whisper) for t
 - Python packages:
   ```bash
   pip install -r requirements.txt
-🚀 Usage
+  ```
+
+## 🚀 Usage
 Run it like a boss:
 
-bash
-Copy
-Edit
+```bash
 python shortssplit.py
+```
+
 Drop your clips into the window:
 
 Top = voice or interview (this gets transcribed)
