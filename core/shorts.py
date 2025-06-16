@@ -9,8 +9,15 @@ from .subtitle_utils import save_srt
 from .whisper_wrapper import transcribe
 
 
-def generate_short(top: Path | str, bottom: Path | str, model_size: str = "base") -> Path:
-    """Create a short stacked video using the two provided clips.
+def generate_short(
+    top: Path | str,
+    bottom: Path | str,
+    model_size: str = "base",
+    *,
+    device: str = "auto",
+) -> Path:
+    """
+    Create a short stacked video using the two provided clips.
 
     Parameters
     ----------
@@ -19,19 +26,21 @@ def generate_short(top: Path | str, bottom: Path | str, model_size: str = "base"
     bottom: Path | str
         Path to the bottom clip.
     model_size: str, optional
-        Whisper model size. Defaults to ``"base"``.
+        Whisper model size. Defaults to "base".
+    device: str, optional
+        Device for Whisper ("cpu", "cuda", or "auto"). Defaults to "auto".
 
     Returns
     -------
     Path
-        The path to the generated ``output.mp4`` file.
+        The path to the generated "output.mp4" file.
     """
     top_path = Path(top)
     bottom_path = Path(bottom)
     output_path = top_path.parent / "output.mp4"
 
     logging.info("Transcribing top clip: %s", top_path)
-    srt_lines = transcribe(top_path, model_size=model_size)
+    srt_lines = transcribe(top_path, model_size=model_size, device=device)
 
     with tempfile.NamedTemporaryFile(suffix=".srt", delete=False) as tmp:
         subtitle_path = Path(tmp.name)
