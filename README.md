@@ -33,3 +33,11 @@ Top = voice or interview (this gets transcribed)
 Bottom = gameplay or background loop
 
 Hit Create, and you’ll get output.mp4 in the same folder as the top clip.
+
+## 👤 About the Author
+
+Built by [Nick (a.k.a. Dyhrrr)](https://twitch.tv/dyhrrr) — a Danish service desk agent by day, FPS goblin and tool-forgersmith by night.  
+Refuses to manually edit subtitles. Believes in local tools, dumb humor, and caffeinated productivity.  
+Currently building an offline Jarvis clone named **Lex** and this is just one piece of the puzzle.
+
+> "If it needs more than one button, it's already too complicated."
