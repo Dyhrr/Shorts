@@ -8,12 +8,35 @@ from faster_whisper import WhisperModel
 _model_cache = {}
 
 
-def transcribe(path: Path, model_size: str = "base") -> List[str]:
-    """Transcribe audio and return SRT lines."""
+def transcribe(
+    path: Path, model_size: str = "base", device: str = "auto"
+) -> List[str]:
+    """Transcribe audio and return SRT lines.
+
+    Parameters
+    ----------
+    path: Path
+        Media file to transcribe.
+    model_size: str, optional
+        Whisper model size. Defaults to ``"base"``.
+    device: str, optional
+        Device for inference (``"cpu"`` or ``"cuda"``/``"auto"``). Defaults to
+        ``"auto"``. If initialization fails (e.g., missing GPU libraries), the
+        function falls back to CPU.
+    """
     logging.info("Transcribing %s", path)
-    if model_size not in _model_cache:
-        _model_cache[model_size] = WhisperModel(model_size, device="auto")
-    model = _model_cache[model_size]
+    cache_key = (model_size, device)
+    if cache_key not in _model_cache:
+        try:
+            _model_cache[cache_key] = WhisperModel(model_size, device=device)
+        except Exception as exc:  # GPU may fail due to missing CUDA/CUDNN
+            logging.warning(
+                "Whisper model failed on %s (%s). Falling back to CPU.", device, exc
+            )
+            cache_key = (model_size, "cpu")
+            if cache_key not in _model_cache:
+                _model_cache[cache_key] = WhisperModel(model_size, device="cpu")
+    model = _model_cache[cache_key]
     segments, _ = model.transcribe(str(path), beam_size=5)
     srt_lines = []
     for i, segment in enumerate(segments, start=1):
