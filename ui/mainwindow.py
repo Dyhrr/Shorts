@@ -61,22 +61,39 @@ class Worker(QThread):
         self.subtitle = subtitle
 
     def run(self):
+        """Generate subtitles if needed and build the stacked video."""
         try:
-            if self.subtitle and self.subtitle.exists():
-                srt_path = self.subtitle
-            else:
-                self.progress.emit(10)
-                lines = transcribe(self.top)
-                self.progress.emit(40)
-                srt_path = self.top.with_suffix(".srt")
-                save_srt(lines, srt_path)
+            srt_path = self._prepare_subtitles()
             self.progress.emit(60)
-            out_path = self.top.with_name("output.mp4")
-            build_stack(self.top, self.bottom, srt_path, out_path, self.font_size, self.font_color)
+            out_path = self._create_output(srt_path)
             self.progress.emit(100)
             self.finished.emit(str(out_path))
         except Exception as exc:
             self.finished.emit(f"Error: {exc}")
+
+    def _prepare_subtitles(self) -> Path:
+        """Return path to subtitle file, transcribing when necessary."""
+        if self.subtitle and self.subtitle.exists():
+            return self.subtitle
+        self.progress.emit(10)
+        lines = transcribe(self.top)
+        self.progress.emit(40)
+        srt_path = self.top.with_suffix(".srt")
+        save_srt(lines, srt_path)
+        return srt_path
+
+    def _create_output(self, srt_path: Path) -> Path:
+        """Stack the clips and burn in subtitles."""
+        out_path = self.top.with_name("output.mp4")
+        build_stack(
+            self.top,
+            self.bottom,
+            srt_path,
+            out_path,
+            self.font_size,
+            self.font_color,
+        )
+        return out_path
 
 
 class MainWindow(QMainWindow):
