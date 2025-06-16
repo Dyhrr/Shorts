@@ -16,7 +16,8 @@ def generate_short(
     *,
     device: str = "auto",
 ) -> Path:
-    """Create a short stacked video using the two provided clips.
+    """
+    Create a short stacked video using the two provided clips.
 
     Parameters
     ----------
@@ -25,14 +26,14 @@ def generate_short(
     bottom: Path | str
         Path to the bottom clip.
     model_size: str, optional
-        Whisper model size. Defaults to ``"base"``.
+        Whisper model size. Defaults to "base".
     device: str, optional
-        Device for Whisper (``"cpu"`` or ``"cuda"``/``"auto"``). Defaults to ``"auto"``.
+        Device for Whisper ("cpu", "cuda", or "auto"). Defaults to "auto".
 
     Returns
     -------
     Path
-        The path to the generated ``output.mp4`` file.
+        The path to the generated "output.mp4" file.
     """
     top_path = Path(top)
     bottom_path = Path(bottom)
