@@ -27,7 +27,13 @@ python shortssplit.py
 ```
 
 The transcriber tries to use your GPU first. If CUDA libraries are missing, it
-falls back to CPU automatically.
+falls back to CPU automatically. You can force CPU mode by setting:
+
+```bash
+set WHISPER_DEVICE=cpu  # Windows
+# or
+export WHISPER_DEVICE=cpu  # Unix-like
+```
 
 Drop your clips into the window:
 
