@@ -16,7 +16,7 @@ def build_stack(
     """Create the stacked video with subtitles burned into the top clip."""
     duration = probe_duration(top)
     filter_complex = (
-        f"[0:v]scale=1080:-2,crop=1080:960,subtitles={subtitle}:force_style='Fontsize={font_size},PrimaryColour=&H{_color_hex(font_color)}&,Alignment=2,OutlineColour=&H000000&,BorderStyle=1,Outline=2'[top];"
+        f"[0:v]scale=1080:-2,crop=1080:960,subtitles='{_escape_path(subtitle)}':force_style='Fontsize={font_size},PrimaryColour=&H{_color_hex(font_color)}&,Alignment=2,OutlineColour=&H000000&,BorderStyle=1,Outline=2'[top];"
         f"[1:v]loop=loop=-1:size=1:start=0,trim=duration={duration},setpts=PTS-STARTPTS,scale=1080:-2,crop=1080:960[bottom];"
         f"[top][bottom]vstack=inputs=2[v]"
     )
@@ -68,3 +68,9 @@ def _color_hex(name: str) -> str:
         "red": "FF0000",
     }
     return colors.get(name.lower(), "FFFFFF")
+
+
+def _escape_path(path: Path) -> str:
+    """Return POSIX path with characters escaped for ffmpeg filter usage."""
+    p = path.as_posix()
+    return p.replace("'", "\\'")
