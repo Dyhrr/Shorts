@@ -1,6 +1,12 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog,
-    QHBoxLayout, QFrame, QApplication
+    QWidget,
+    QVBoxLayout,
+    QLabel,
+    QPushButton,
+    QFileDialog,
+    QHBoxLayout,
+    QFrame,
+    QApplication,
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPalette, QColor, QFont
@@ -86,9 +92,14 @@ class MainWindow(QWidget):
         }
         """
 
-# To run the UI manually (if needed):
-if __name__ == "__main__":
+
+def run_app() -> None:
+    """Launch the application and show the main window."""
     app = QApplication([])
     window = MainWindow()
     window.show()
     app.exec()
+
+# To run the UI manually (if needed):
+if __name__ == "__main__":
+    run_app()
