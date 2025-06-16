@@ -6,7 +6,7 @@ It uses [`faster-whisper`](https://github.com/guillaumekln/faster-whisper) for t
 
 ## ⚙️ Features
 - 🖱️ Drag-and-drop PySide6 interface (yes, it actually works)
-- 🧠 Top clip gets subtitled using Whisper (GPU or CPU, your funeral)
+- 🧠 Top clip gets subtitled using Whisper (GPU if available, otherwise CPU)
 - 🪞 Bottom clip loops or trims to match top duration automatically
 - 🔊 Audio only from top clip, normalized to not blow ears out
 - 🌗 Light/dark mode toggle (for when you're feeling emo)
@@ -25,6 +25,9 @@ Run it like a boss:
 ```bash
 python shortssplit.py
 ```
+
+The transcriber tries to use your GPU first. If CUDA libraries are missing, it
+falls back to CPU automatically.
 
 Drop your clips into the window:
 
