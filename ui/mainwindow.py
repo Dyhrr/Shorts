@@ -171,8 +171,6 @@ class MainWindow(QWidget):
         }}
         """
 
-# SettingsDialog and run_app unchanged
-
 
 def run_app() -> None:
     """Launch the application and show the main window."""
