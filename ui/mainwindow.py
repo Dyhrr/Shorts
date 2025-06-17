@@ -160,6 +160,10 @@ class MainWindow(QWidget):
         self.bottom_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.bottom_label)
 
+        self.output_label = QLabel("Output file: none")
+        self.output_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.output_label)
+
         self.status_label = QLabel("")
         self.status_label.setAlignment(Qt.AlignCenter)
         self.status_label.setStyleSheet(
@@ -172,6 +176,10 @@ class MainWindow(QWidget):
                 setattr(self, f"{clip}_clip", clip_path)
                 label = self.top_label if clip == "top" else self.bottom_label
                 label.setText(f"{clip.capitalize()} clip: {clip_path}")
+
+        if out_path := self.config.get("output_path"):
+            self.output_path = out_path
+            self.output_label.setText(f"Output file: {out_path}")
 
     def load_file(self, which: str) -> None:
         path, _ = QFileDialog.getOpenFileName(self, f"Select {which} clip")
@@ -189,6 +197,9 @@ class MainWindow(QWidget):
         )
         if path:
             self.output_path = path
+            self.output_label.setText(f"Output file: {path}")
+            self.config["output_path"] = path
+            save_config(self.config)
 
     def update_status(self, msg: str) -> None:
         self.status_label.setText(msg)
