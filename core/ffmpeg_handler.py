@@ -20,6 +20,7 @@ def build_stack(
     # Prepare subtitle path: forward slashes + escape the "C:" drive-colon
     sub_path = subtitle.as_posix()
     sub_path = re.sub(r'^([A-Za-z]):', r'\1\\:', sub_path, count=1)
+    sub_path = sub_path.replace("'", "\\'")
 
     # ASS subtitles
     sub_filter = f"ass='{sub_path}'"
