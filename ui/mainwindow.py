@@ -176,6 +176,7 @@ class MainWindow(QWidget):
 
         # Animated buttons
         self.buttons = []
+        self.create_btn = None
         btn_defs = [
             ("🎥 Load Top Clip", lambda: self.load_file("top")),
             ("📼 Load Bottom Clip", lambda: self.load_file("bottom")),
@@ -189,6 +190,8 @@ class MainWindow(QWidget):
             btn.setCursor(Qt.PointingHandCursor)
             layout.addWidget(btn)
             self.buttons.append(btn)
+            if text == "⚙️ Create Shorts Video":
+                self.create_btn = btn
             self.fade_in(btn, delay=900 + i*150)
 
         self.top_label = QLabel("Top clip: none")
@@ -257,6 +260,9 @@ class MainWindow(QWidget):
             return
         out = getattr(self, "output_path", None)
 
+        if self.create_btn is not None:
+            self.create_btn.setEnabled(False)
+
         self.thread = QThread(self)
         self.worker = Worker(top, bottom, out, self._resolution_tuple())
         self.worker.moveToThread(self.thread)
@@ -274,6 +280,8 @@ class MainWindow(QWidget):
         else:
             QMessageBox.critical(self, "Error", error)
         self.status_label.setText("")
+        if self.create_btn is not None:
+            self.create_btn.setEnabled(True)
 
     def open_settings(self) -> None:
         dialog = QDialog(self)
