@@ -14,7 +14,17 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QGraphicsDropShadowEffect
 )
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, QTimer
+from PySide6.QtCore import (
+    Qt,
+    QPropertyAnimation,
+    QEasingCurve,
+    QRect,
+    QTimer,
+    QThread,
+    QObject,
+    Signal,
+    Slot,
+)
 from PySide6.QtGui import QFont, QColor, QPixmap
 import random
 from pathlib import Path
@@ -76,6 +86,34 @@ class AnimatedButton(QPushButton):
         self._anim.setEndValue(original)
         self._anim.start()
         super().leaveEvent(e)
+
+
+class Worker(QObject):
+    """Background worker to run ``generate_short`` in a thread."""
+
+    progress = Signal(str)
+    finished = Signal(bool, str)
+
+    def __init__(self, top: str, bottom: str, out: str | None, res: tuple[int, int]):
+        super().__init__()
+        self.top = top
+        self.bottom = bottom
+        self.out = out
+        self.res = res
+
+    @Slot()
+    def run(self) -> None:
+        try:
+            generate_short(
+                self.top,
+                self.bottom,
+                output_path=self.out,
+                progress=self.progress.emit,
+                resolution=self.res,
+            )
+            self.finished.emit(True, "")
+        except Exception as exc:  # pragma: no cover - runtime feedback
+            self.finished.emit(False, str(exc))
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -212,19 +250,24 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "Missing clips", "Load both clips first")
             return
         out = getattr(self, "output_path", None)
-        try:
-            generate_short(
-                top,
-                bottom,
-                output_path=out,
-                progress=self.update_status,
-                resolution=self._resolution_tuple(),
-            )
+
+        self.thread = QThread(self)
+        self.worker = Worker(top, bottom, out, self._resolution_tuple())
+        self.worker.moveToThread(self.thread)
+        self.worker.progress.connect(self.update_status)
+        self.worker.finished.connect(self._on_thread_finished)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.thread.start()
+
+    def _on_thread_finished(self, success: bool, error: str) -> None:
+        if success:
             QMessageBox.information(self, "Done", "Short created successfully")
-            self.status_label.setText("")
-        except Exception as exc:  # pragma: no cover - runtime feedback
-            QMessageBox.critical(self, "Error", str(exc))
-            self.status_label.setText("")
+        else:
+            QMessageBox.critical(self, "Error", error)
+        self.status_label.setText("")
 
     def open_settings(self) -> None:
         dialog = QDialog(self)
