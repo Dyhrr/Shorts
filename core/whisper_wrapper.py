@@ -5,8 +5,6 @@ from typing import List
 
 from faster_whisper import WhisperModel
 
-from .subtitle_utils import cap_words_per_cue
-
 
 _model_cache = {}
 
@@ -16,7 +14,8 @@ def transcribe(
 ) -> List[str]:
     """Transcribe audio and return SRT lines.
 
-    Each subtitle cue is capped at three words for readability.
+    Each subtitle cue contains up to three words for readability and is timed
+    using word-level timestamps.
 
     Parameters
     ----------
@@ -46,12 +45,30 @@ def transcribe(
             if cache_key not in _model_cache:
                 _model_cache[cache_key] = WhisperModel(model_size, device="cpu")
     model = _model_cache[cache_key]
-    segments, _ = model.transcribe(str(path), beam_size=5)
-    cues = [
-        (segment.start, segment.end, segment.text.strip())
-        for segment in segments
-    ]
-    cues = cap_words_per_cue(cues, max_words=3)
+    segments, _ = model.transcribe(
+        str(path), beam_size=5, word_timestamps=True
+    )
+
+    max_words = 3
+    cues = []
+    word_group = []
+    for segment in segments:
+        if segment.words is None:
+            continue
+        for word in segment.words:
+            word_group.append(word)
+            if len(word_group) == max_words:
+                start = word_group[0].start
+                end = word_group[-1].end
+                text = "".join(w.word for w in word_group).strip()
+                cues.append((start, end, text))
+                word_group = []
+
+    if word_group:
+        start = word_group[0].start
+        end = word_group[-1].end
+        text = "".join(w.word for w in word_group).strip()
+        cues.append((start, end, text))
 
     srt_lines = []
     for i, (start, end, text) in enumerate(cues, start=1):
