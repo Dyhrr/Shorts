@@ -24,6 +24,13 @@ It uses [`faster-whisper`](https://github.com/guillaumekln/faster-whisper) for t
   pip install -r requirements.txt
   ```
 
+## 📦 Installation
+Once packaged, install via pip:
+```bash
+pip install shortssplit
+```
+
+
 ## 🚀 Usage
 Run it like a boss:
 
