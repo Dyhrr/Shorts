@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shortssplit"
+version = "0.9"
+description = "Tool for stacking vertical videos with subtitles"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{name = "Nick"}]
+dependencies = [
+    "faster-whisper",
+    "PySide6",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["tests*", "build*", "dist*"]
+
