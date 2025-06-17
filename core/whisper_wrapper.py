@@ -60,26 +60,36 @@ def transcribe(
             if len(word_group) == max_words:
                 start = word_group[0].start
                 end = word_group[-1].end
-                text = "".join(w.word for w in word_group).strip()
+                text = " ".join(w.word for w in word_group).strip()
                 cues.append((start, end, text))
                 word_group = []
 
     if word_group:
         start = word_group[0].start
         end = word_group[-1].end
-        text = "".join(w.word for w in word_group).strip()
+        text = " ".join(w.word for w in word_group).strip()
         cues.append((start, end, text))
+
+    # Sort cues by start time in case segments are not sequential
+    cues.sort(key=lambda c: c[0])
 
     srt_lines = []
     for i, (start, end, text) in enumerate(cues, start=1):
-        srt_lines.append(
-            f"{i}\n{_format_time(start)} --> {_format_time(end)}\n{text}\n"
+        srt_lines.extend(
+            [
+                f"{i}",
+                f"{_format_time(start)} --> {_format_time(end)}",
+                text,
+                "",
+            ]
         )
     return srt_lines
 
 
 def _format_time(seconds: float) -> str:
-    hrs = int(seconds // 3600)
-    mins = int((seconds % 3600) // 60)
-    secs = seconds % 60
-    return f"{hrs:02}:{mins:02}:{secs:06.3f}".replace(".", ",")
+    """Format ``seconds`` as ``HH:MM:SS,mmm`` for SRT."""
+    ms_total = int(round(seconds * 1000))
+    hrs, ms_total = divmod(ms_total, 3600 * 1000)
+    mins, ms_total = divmod(ms_total, 60 * 1000)
+    secs, ms = divmod(ms_total, 1000)
+    return f"{hrs:02}:{mins:02}:{secs:02},{ms:03}"
