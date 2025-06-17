@@ -1,3 +1,2 @@
-ffmpeg-python
 faster-whisper
 PySide6

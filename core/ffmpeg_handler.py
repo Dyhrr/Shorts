@@ -47,9 +47,17 @@ def build_stack(
     cmd_x264  = base_cmd + ["-c:v", "libx264",    str(out_path)]
 
     logging.debug("Running ffmpeg (NVENC): %s", " ".join(cmd_nvenc))
-    result = subprocess.run(cmd_nvenc, stderr=subprocess.PIPE)
-    if result.returncode != 0:
-        logging.warning("h264_nvenc failed (exit %d), falling back to libx264", result.returncode)
-        logging.debug(result.stderr.decode())
-        subprocess.run(cmd_x264, check=True)
+    try:
+        subprocess.run(cmd_nvenc, check=True, stderr=subprocess.PIPE)
+    except subprocess.CalledProcessError as exc:
+        logging.warning(
+            "h264_nvenc failed (exit %d), falling back to libx264",
+            exc.returncode,
+        )
+        logging.debug(exc.stderr.decode())
+        try:
+            subprocess.run(cmd_x264, check=True, stderr=subprocess.PIPE)
+        except subprocess.CalledProcessError as exc2:
+            logging.error("ffmpeg failed: %s", exc2.stderr.decode())
+            raise RuntimeError("ffmpeg encoding failed") from exc2
 

@@ -31,6 +31,12 @@ Run it like a boss:
 python shortssplit.py
 ```
 
+Or run it from the terminal with your clips:
+
+```bash
+python shortssplit.py top.mp4 bottom.mp4 -o final.mp4
+```
+
 The transcriber tries to use your GPU first. If CUDA libraries are missing, it
 falls back to CPU automatically. You can force CPU mode by setting:
 
