@@ -21,6 +21,7 @@ def generate_short(
     style: Dict[str, str | int] | None = None,
     output_path: Path | str | None = None,
     progress: Callable[[str], None] | None = None,
+    resolution: tuple[int, int] = (1080, 1920),
 ) -> Path:
     """
     Create a short stacked video using the two provided clips.
@@ -35,6 +36,8 @@ def generate_short(
         Whisper model size. Defaults to "base".
     device: str, optional
         Device for Whisper ("cpu", "cuda", or "auto"). Defaults to "auto".
+    resolution: tuple[int, int], optional
+        Final video resolution as (width, height). Defaults to (1080, 1920).
 
     Returns
     -------
@@ -64,7 +67,7 @@ def generate_short(
         if progress:
             progress("Encoding...")
         logging.info("Building stacked video -> %s", output_path)
-        build_stack(top_path, bottom_path, subtitle_path, output_path)
+        build_stack(top_path, bottom_path, subtitle_path, output_path, resolution=resolution)
     finally:
         subtitle_path.unlink(missing_ok=True)
 

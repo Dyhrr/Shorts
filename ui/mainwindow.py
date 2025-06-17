@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, QTimer
 from PySide6.QtGui import QFont, QColor, QPixmap
+import random
 
 from core import generate_short, load_config, save_config
 from core.subtitle_utils import DEFAULT_STYLE
@@ -42,6 +43,13 @@ THEMES = {
 }
 
 SHADOW_COLOR = "#000000"
+
+QUOTES = [
+    "Stay hydrated!",
+    "Keep it simple.",
+    "Move fast and break things.",
+    "Another day, another short.",
+]
 
 class AnimatedButton(QPushButton):
     def __init__(self, *args, **kwargs):
@@ -75,7 +83,9 @@ class MainWindow(QWidget):
 
         self.theme = self.config.get("theme", "dark")
         self.colors = THEMES.get(self.theme, THEMES["dark"])
+        self.resolution = self.config.get("resolution", "1080x1920")
 
+        self.setAcceptDrops(True)
         self.setWindowTitle("ShortsSplit 🐢")
         self.setMinimumSize(540, 480)
         self.setStyleSheet(self.stylesheet())
@@ -112,6 +122,14 @@ class MainWindow(QWidget):
         subtitle.setStyleSheet(f"color: {self.colors['FG']};")
         self.fade_in(subtitle, delay=600)
         layout.addWidget(subtitle)
+
+        quote = QLabel(random.choice(QUOTES))
+        quote.setAlignment(Qt.AlignCenter)
+        quote.setStyleSheet(
+            f"color: {self.colors['ACCENT']}; font-style: italic;"
+        )
+        self.fade_in(quote, delay=700)
+        layout.addWidget(quote)
 
         layout.addWidget(self.divider())
 
@@ -182,7 +200,13 @@ class MainWindow(QWidget):
             return
         out = getattr(self, "output_path", None)
         try:
-            generate_short(top, bottom, output_path=out, progress=self.update_status)
+            generate_short(
+                top,
+                bottom,
+                output_path=out,
+                progress=self.update_status,
+                resolution=self._resolution_tuple(),
+            )
             QMessageBox.information(self, "Done", "Short created successfully")
             self.status_label.setText("")
         except Exception as exc:  # pragma: no cover - runtime feedback
@@ -198,6 +222,12 @@ class MainWindow(QWidget):
         theme_box.addItems(THEMES.keys())
         theme_box.setCurrentText(self.theme)
         layout.addWidget(theme_box)
+
+        layout.addWidget(QLabel("Resolution"))
+        res_box = QComboBox()
+        res_box.addItems(["1080x1920", "720x1280"])
+        res_box.setCurrentText(self.resolution)
+        layout.addWidget(res_box)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         layout.addWidget(buttons)
 
@@ -206,6 +236,8 @@ class MainWindow(QWidget):
             self.colors = THEMES[self.theme]
             self.setStyleSheet(self.stylesheet())
             self.config["theme"] = self.theme
+            self.resolution = res_box.currentText()
+            self.config["resolution"] = self.resolution
             save_config(self.config)
             dialog.accept()
 
@@ -213,6 +245,32 @@ class MainWindow(QWidget):
         buttons.rejected.connect(dialog.reject)
 
         dialog.exec()
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        urls = [u.toLocalFile() for u in event.mimeData().urls()]
+        files = [p for p in urls if p]
+        if not files:
+            return
+        if len(files) >= 1:
+            self.top_clip = files[0]
+            self.top_label.setText(f"Top clip: {files[0]}")
+            self.config["top_clip"] = files[0]
+        if len(files) >= 2:
+            self.bottom_clip = files[1]
+            self.bottom_label.setText(f"Bottom clip: {files[1]}")
+            self.config["bottom_clip"] = files[1]
+        save_config(self.config)
+
+    def _resolution_tuple(self) -> tuple[int, int]:
+        try:
+            w, h = self.resolution.lower().split("x")
+            return int(w), int(h)
+        except Exception:
+            return 1080, 1920
 
     def divider(self) -> QFrame:
         line = QFrame()

@@ -69,6 +69,15 @@ Below is a quick reference of the main Python functions used by ShortsSplit.
 - `check_ffmpeg()` – ensures FFmpeg and FFprobe are installed.
 - `probe_duration(path)` – retrieves the duration of a media file in seconds.
 
+## 📦 Packaging
+
+Run the included `build_pyinstaller.py` script to produce a standalone
+executable:
+
+```bash
+python build_pyinstaller.py
+```
+
 ### Works, but Has Limitations
 
 - The UI mentions a light/dark mode toggle, but the implementation is not present yet.
