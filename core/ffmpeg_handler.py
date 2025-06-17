@@ -11,6 +11,8 @@ def build_stack(
     bottom: Path,
     subtitle: Path,
     out_path: Path,
+    *,
+    resolution: tuple[int, int] = (1080, 1920),
 ) -> None:
     """Create the stacked video with subtitles burned into the top clip."""
     duration = probe_duration(top)
@@ -23,9 +25,11 @@ def build_stack(
     sub_filter = f"ass='{sub_path}'"
 
     # Scale→crop→subtitles on top; scale→crop→trim→setpts on bottom; then vstack
+    width, height = resolution
+    half = height // 2
     filter_complex = (
-        f"[0:v]scale=1080:-2,crop=1080:960,{sub_filter}[top];"
-        f"[1:v]scale=1080:-2,crop=1080:960,trim=duration={duration},"
+        f"[0:v]scale={width}:-2,crop={width}:{half},{sub_filter}[top];"
+        f"[1:v]scale={width}:-2,crop={width}:{half},trim=duration={duration},"
         "setpts=PTS-STARTPTS[bottom];"
         "[top][bottom]vstack=inputs=2[v]"
     )

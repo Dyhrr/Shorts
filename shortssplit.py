@@ -19,6 +19,12 @@ def main() -> int:
     parser.add_argument("--font", help="Subtitle font name")
     parser.add_argument("--font-size", type=int, help="Subtitle font size")
     parser.add_argument("--outline", type=int, help="Subtitle outline thickness")
+    parser.add_argument(
+        "-r",
+        "--resolution",
+        default=None,
+        help="Output resolution WIDTHxHEIGHT (e.g. 1080x1920)",
+    )
     parser.add_argument("--version", action="version", version=f"ShortsSplit {__version__}")
     args = parser.parse_args()
 
@@ -33,6 +39,7 @@ def main() -> int:
     cfg = load_config()
     top = args.top or cfg.get("top_clip")
     bottom = args.bottom or cfg.get("bottom_clip")
+    resolution = args.resolution or cfg.get("resolution", "1080x1920")
 
     style = {}
     if args.font:
@@ -53,8 +60,9 @@ def main() -> int:
             style=style,
             output_path=args.output,
             progress=print,
+            resolution=tuple(int(x) for x in resolution.lower().split("x")),
         )
-        save_config({"top_clip": top, "bottom_clip": bottom})
+        save_config({"top_clip": top, "bottom_clip": bottom, "resolution": resolution})
         print(out)
         return 0
 

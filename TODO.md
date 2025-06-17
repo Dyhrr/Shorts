@@ -6,12 +6,8 @@ This is the "make it actually usable and slightly less cursed" list for getting 
 
 ## 🧠 Core Functionality
 
-- [ ] Drag-and-drop reliably processes both top and bottom clips
-
 ---
 ## ⚙️ Settings and Configuration
-
-- [ ] (Optional) Output resolution toggle or presets
 
 ---
 
@@ -21,12 +17,9 @@ This is the "make it actually usable and slightly less cursed" list for getting 
 
 ## 📦 Packaging and Delivery
 
-- [ ] PyInstaller build script for lazy end users (optional but nice)
-
 ---
 
 ## 🎨 Flavor and Personality
-- [ ] loading animation or quote-of-the-day just for vibe
 
 ---
 
