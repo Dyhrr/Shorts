@@ -9,15 +9,6 @@ This is the "make it actually usable and slightly less cursed" list for getting 
 - [ ] Drag-and-drop reliably processes both top and bottom clips
 
 ---
-
-## 🖥️ UI/UX Polishing
-
-- [ ] Clear labeling for top (voice) and bottom (visual) clip inputs
-- [ ] Light/dark mode toggle (even a dummy one is fine)
-- [ ] "Create" button triggers complete render chain, with feedback
-
----
-
 ## ⚙️ Settings and Configuration
 
 - [ ] (Optional) Output resolution toggle or presets
@@ -25,8 +16,6 @@ This is the "make it actually usable and slightly less cursed" list for getting 
 ---
 
 ## 🚨 Error Handling
-
-- [ ] Empty top audio = warning but still renders (with empty subs?)
 
 ---
 

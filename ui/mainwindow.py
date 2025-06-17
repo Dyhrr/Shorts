@@ -14,19 +14,33 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QGraphicsDropShadowEffect
 )
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, QTimer
 from PySide6.QtGui import QFont, QColor, QPixmap
 
 from core import generate_short, load_config, save_config
 from core.subtitle_utils import DEFAULT_STYLE
 
-ACCENT = "#00BCD4"
-BG = "#212121"
-FG = "#E0E0E0"
-BTN_BG = "#424242"
-BTN_HOVER = "#616161"
-INPUT_BG = "#2E2E2E"
-INPUT_FG = "#FFFFFF"
+THEMES = {
+    "dark": {
+        "ACCENT": "#00BCD4",
+        "BG": "#212121",
+        "FG": "#E0E0E0",
+        "BTN_BG": "#424242",
+        "BTN_HOVER": "#616161",
+        "INPUT_BG": "#2E2E2E",
+        "INPUT_FG": "#FFFFFF",
+    },
+    "light": {
+        "ACCENT": "#0078D4",
+        "BG": "#FFFFFF",
+        "FG": "#000000",
+        "BTN_BG": "#E0E0E0",
+        "BTN_HOVER": "#CCCCCC",
+        "INPUT_BG": "#FFFFFF",
+        "INPUT_FG": "#000000",
+    },
+}
+
 SHADOW_COLOR = "#000000"
 
 class AnimatedButton(QPushButton):
@@ -59,6 +73,9 @@ class MainWindow(QWidget):
         super().__init__()
         self.config = load_config()
 
+        self.theme = self.config.get("theme", "dark")
+        self.colors = THEMES.get(self.theme, THEMES["dark"])
+
         self.setWindowTitle("ShortsSplit 🐢")
         self.setMinimumSize(540, 480)
         self.setStyleSheet(self.stylesheet())
@@ -82,7 +99,9 @@ class MainWindow(QWidget):
         self.title = QLabel("ShortsSplit")
         self.title.setFont(QFont("Segoe UI", 26, QFont.DemiBold))
         self.title.setAlignment(Qt.AlignCenter)
-        self.title.setStyleSheet(f"color: {ACCENT}; letter-spacing: 2px;")
+        self.title.setStyleSheet(
+            f"color: {self.colors['ACCENT']}; letter-spacing: 2px;"
+        )
         self.apply_shadow(self.title, blur=20)
         self.fade_in(self.title, delay=300)
         layout.addWidget(self.title)
@@ -90,7 +109,7 @@ class MainWindow(QWidget):
         subtitle = QLabel("Stack your clips. Burn the subs. Split the views.")
         subtitle.setFont(QFont("Segoe UI", 12))
         subtitle.setAlignment(Qt.AlignCenter)
-        subtitle.setStyleSheet(f"color: {FG};")
+        subtitle.setStyleSheet(f"color: {self.colors['FG']};")
         self.fade_in(subtitle, delay=600)
         layout.addWidget(subtitle)
 
@@ -113,27 +132,124 @@ class MainWindow(QWidget):
             self.buttons.append(btn)
             self.fade_in(btn, delay=900 + i*150)
 
+        self.top_label = QLabel("Top clip: none")
+        self.top_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.top_label)
+
+        self.bottom_label = QLabel("Bottom clip: none")
+        self.bottom_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.bottom_label)
+
         self.status_label = QLabel("")
         self.status_label.setAlignment(Qt.AlignCenter)
-        self.status_label.setStyleSheet(f"color: {ACCENT}; font-style: italic;")
+        self.status_label.setStyleSheet(
+            f"color: {self.colors['ACCENT']}; font-style: italic;"
+        )
         layout.addWidget(self.status_label)
 
         for clip in ("top", "bottom"):
             if clip_path := self.config.get(f"{clip}_clip"):
                 setattr(self, f"{clip}_clip", clip_path)
+                label = self.top_label if clip == "top" else self.bottom_label
+                label.setText(f"{clip.capitalize()} clip: {clip_path}")
 
-    # ... other methods unchanged ...
+    def load_file(self, which: str) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, f"Select {which} clip")
+        if not path:
+            return
+        setattr(self, f"{which}_clip", path)
+        label = self.top_label if which == "top" else self.bottom_label
+        label.setText(f"{which.capitalize()} clip: {path}")
+        self.config[f"{which}_clip"] = path
+        save_config(self.config)
+
+    def set_output(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Select output file", "output.mp4", "MP4 files (*.mp4)"
+        )
+        if path:
+            self.output_path = path
+
+    def update_status(self, msg: str) -> None:
+        self.status_label.setText(msg)
+        QApplication.processEvents()
+
+    def create_short(self) -> None:
+        top = getattr(self, "top_clip", None)
+        bottom = getattr(self, "bottom_clip", None)
+        if not top or not bottom:
+            QMessageBox.warning(self, "Missing clips", "Load both clips first")
+            return
+        out = getattr(self, "output_path", None)
+        try:
+            generate_short(top, bottom, output_path=out, progress=self.update_status)
+            QMessageBox.information(self, "Done", "Short created successfully")
+            self.status_label.setText("")
+        except Exception as exc:  # pragma: no cover - runtime feedback
+            QMessageBox.critical(self, "Error", str(exc))
+            self.status_label.setText("")
+
+    def open_settings(self) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Settings")
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(QLabel("Theme"))
+        theme_box = QComboBox()
+        theme_box.addItems(THEMES.keys())
+        theme_box.setCurrentText(self.theme)
+        layout.addWidget(theme_box)
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        layout.addWidget(buttons)
+
+        def accept() -> None:
+            self.theme = theme_box.currentText()
+            self.colors = THEMES[self.theme]
+            self.setStyleSheet(self.stylesheet())
+            self.config["theme"] = self.theme
+            save_config(self.config)
+            dialog.accept()
+
+        buttons.accepted.connect(accept)
+        buttons.rejected.connect(dialog.reject)
+
+        dialog.exec()
+
+    def divider(self) -> QFrame:
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        return line
+
+    def fade_in(self, widget: QWidget, delay: int = 0) -> None:
+        anim = QPropertyAnimation(widget, b"windowOpacity")
+        anim.setDuration(300)
+        anim.setStartValue(0)
+        anim.setEndValue(1)
+        anim.setEasingCurve(QEasingCurve.OutCubic)
+        if delay:
+            QTimer.singleShot(delay, anim.start)
+        else:
+            anim.start()
+        widget._fade_anim = anim  # keep reference
+
+    def apply_shadow(self, widget: QWidget, *, blur: int = 10) -> None:
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(blur)
+        shadow.setOffset(0, 0)
+        shadow.setColor(QColor(SHADOW_COLOR))
+        widget.setGraphicsEffect(shadow)
 
     def stylesheet(self):
+        c = self.colors
         return f"""
         QWidget {{
-            background-color: {BG};
-            color: {FG};
+            background-color: {c['BG']};
+            color: {c['FG']};
             font-family: 'Segoe UI', sans-serif;
         }}
         QPushButton {{
-            background-color: {BTN_BG};
-            color: {FG};
+            background-color: {c['BTN_BG']};
+            color: {c['FG']};
             border: 2px solid transparent;
             border-radius: 20px;
             padding: 14px;
@@ -141,17 +257,17 @@ class MainWindow(QWidget):
             transition: transform 200ms ease-in-out;
         }}
         QPushButton:hover {{
-            background-color: {BTN_HOVER};
-            border-color: {ACCENT};
+            background-color: {c['BTN_HOVER']};
+            border-color: {c['ACCENT']};
             transform: scale(1.05);
         }}
         QPushButton:pressed {{
-            background-color: {BTN_BG};
+            background-color: {c['BTN_BG']};
             transform: scale(0.98);
         }}
         QLineEdit, QComboBox {{
-            background-color: {INPUT_BG};
-            color: {INPUT_FG};
+            background-color: {c['INPUT_BG']};
+            color: {c['INPUT_FG']};
             border: 1px solid #555;
             border-radius: 8px;
             padding: 6px 8px;
@@ -159,10 +275,10 @@ class MainWindow(QWidget):
             transition: border-color 200ms;
         }}
         QLineEdit:focus, QComboBox:focus {{
-            border-color: {ACCENT};
+            border-color: {c['ACCENT']};
         }}
         QLabel {{
-            color: {FG};
+            color: {c['FG']};
             transition: color 200ms;
         }}
         QFrame {{
