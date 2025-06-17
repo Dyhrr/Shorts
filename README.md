@@ -43,6 +43,25 @@ Bottom = gameplay or background loop
 
 Hit Create, and you’ll get output.mp4 in the same folder as the top clip.
 
+## 📑 Function Overview
+
+Below is a quick reference of the main Python functions used by ShortsSplit.
+
+### Fully Working
+
+- `run_app()` – launches the PySide6 interface.
+- `generate_short(top, bottom, model_size="base", device="auto")` – handles transcription and video stacking, returning the path to `output.mp4`.
+- `build_stack(top, bottom, subtitle, out_path)` – calls FFmpeg to stack the clips and burn the subtitles. It tries GPU encoding first and falls back to CPU when necessary.
+- `transcribe(path, model_size="base", device="auto")` – uses `faster-whisper` to create short subtitle cues from the audio track.
+- `save_ass(cues, out_path, style=None)` – writes subtitle cues to an ASS file with a default style.
+- `check_ffmpeg()` – ensures FFmpeg and FFprobe are installed.
+- `probe_duration(path)` – retrieves the duration of a media file in seconds.
+
+### Works, but Has Limitations
+
+- The UI mentions a light/dark mode toggle, but the implementation is not present yet.
+- GPU encoding and transcription rely on the machine's hardware. If a GPU is unavailable, the process falls back to CPU and may take longer.
+
 ## 👤 About the Author
 
 Built by [Nick (a.k.a. Dyhrrr)](https://twitch.tv/dyhrrr) — a Danish service desk agent by day, FPS goblin and tool-forgersmith by night.  
