@@ -71,7 +71,7 @@ class MainWindow(QWidget):
         # Logo in the top-left corner
         header = QHBoxLayout()
         logo_label = QLabel(self)
-        logo_pix = QPixmap("path/to/logo.png")  # TODO: replace with your logo path
+        logo_pix = QPixmap("/ui/Logo.png")  # TODO: replace with your logo path
         logo_pix = logo_pix.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         logo_label.setPixmap(logo_pix)
         header.addWidget(logo_label, alignment=Qt.AlignLeft)
