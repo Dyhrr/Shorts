@@ -30,6 +30,7 @@ import random
 from pathlib import Path
 
 from core import generate_short, load_config, save_config
+from core.utils import VALID_EXTS
 from core.subtitle_utils import DEFAULT_STYLE
 
 THEMES = {
@@ -220,7 +221,12 @@ class MainWindow(QWidget):
             self.output_label.setText(f"Output file: {out_path}")
 
     def load_file(self, which: str) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, f"Select {which} clip")
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            f"Select {which} clip",
+            "",
+            "Video Files (*.mp4 *.mov *.mkv *.webm *.avi)",
+        )
         if not path:
             return
         setattr(self, f"{which}_clip", path)
@@ -304,11 +310,13 @@ class MainWindow(QWidget):
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
-            event.acceptProposedAction()
+            urls = [u.toLocalFile() for u in event.mimeData().urls()]
+            if all(Path(p).suffix.lower() in VALID_EXTS for p in urls if p):
+                event.acceptProposedAction()
 
     def dropEvent(self, event):
         urls = [u.toLocalFile() for u in event.mimeData().urls()]
-        files = [p for p in urls if p]
+        files = [p for p in urls if p and Path(p).suffix.lower() in VALID_EXTS]
         if not files:
             return
         if len(files) >= 1:
