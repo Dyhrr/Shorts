@@ -25,13 +25,22 @@ from PySide6.QtCore import (
     Signal,
     Slot,
 )
-from PySide6.QtGui import QFont, QColor, QPixmap
+from PySide6.QtGui import QFont, QColor, QPixmap, QGuiApplication
+import sys
 import random
 from pathlib import Path
 
 from core import generate_short, load_config, save_config
 from core.utils import VALID_EXTS
 from core.subtitle_utils import DEFAULT_STYLE
+
+
+def resource_path(name: str) -> Path:
+    """Return absolute path to resource, supporting PyInstaller."""
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+    if getattr(sys, "_MEIPASS", None):
+        return base / "ui" / name
+    return Path(__file__).with_name(name)
 
 THEMES = {
     "dark": {
@@ -138,10 +147,13 @@ class MainWindow(QWidget):
         # Logo in the top-left corner
         header = QHBoxLayout()
         logo_label = QLabel(self)
-        logo_path = Path(__file__).with_name("Logo.png")
+        logo_path = resource_path("Logo.png")
         logo_pix = QPixmap(str(logo_path))
-        logo_pix = logo_pix.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        logo_label.setPixmap(logo_pix)
+        if not logo_pix.isNull():
+            logo_pix = logo_pix.scaled(
+                40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            )
+            logo_label.setPixmap(logo_pix)
         header.addWidget(logo_label, alignment=Qt.AlignLeft)
         header.addStretch()
         layout.addLayout(header)
@@ -384,16 +396,13 @@ class MainWindow(QWidget):
             border-radius: 20px;
             padding: 14px;
             font-size: 15px;
-            transition: transform 200ms ease-in-out;
         }}
         QPushButton:hover {{
             background-color: {c['BTN_HOVER']};
             border-color: {c['ACCENT']};
-            transform: scale(1.05);
         }}
         QPushButton:pressed {{
             background-color: {c['BTN_BG']};
-            transform: scale(0.98);
         }}
         QLineEdit, QComboBox {{
             background-color: {c['INPUT_BG']};
@@ -402,14 +411,12 @@ class MainWindow(QWidget):
             border-radius: 8px;
             padding: 6px 8px;
             font-size: 14px;
-            transition: border-color 200ms;
         }}
         QLineEdit:focus, QComboBox:focus {{
             border-color: {c['ACCENT']};
         }}
         QLabel {{
             color: {c['FG']};
-            transition: color 200ms;
         }}
         QFrame {{
             margin-top: 12px;
@@ -420,6 +427,10 @@ class MainWindow(QWidget):
 
 def run_app() -> None:
     """Launch the application and show the main window."""
+    # Set DPI policy *before* creating QApplication to avoid Qt warning
+    QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
+        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+    )
     app = QApplication([])
     window = MainWindow()
     window.show()
