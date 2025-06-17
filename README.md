@@ -14,7 +14,7 @@ It uses [`faster-whisper`](https://github.com/guillaumekln/faster-whisper) for t
 - 🎨 Custom subtitle style options
 - 🗄️ Choose output file name and location
 - 📣 Simple progress messages while processing
-- 🔗 Settings panel for YouTube/TikTok links
+- 🔗 Settings panel for YouTube/TikTok links; choose light or dark mode from the Theme dropdown here
 
 ## 🧪 Requirements
 - Python 3.10+
@@ -80,7 +80,6 @@ python build_pyinstaller.py
 
 ### Works, but Has Limitations
 
-- The UI mentions a light/dark mode toggle, but the implementation is not present yet.
 - GPU encoding and transcription rely on the machine's hardware. If a GPU is unavailable, the process falls back to CPU and may take longer.
 
 ## 👤 About the Author
