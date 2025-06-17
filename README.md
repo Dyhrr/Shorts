@@ -89,3 +89,8 @@ Refuses to manually edit subtitles. Believes in local tools, dumb humor, and caf
 Currently building an offline Jarvis clone named **Lex** and this is just one piece of the puzzle.
 
 > "If it needs more than one button, it's already too complicated."
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
