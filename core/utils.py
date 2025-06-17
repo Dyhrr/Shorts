@@ -7,12 +7,17 @@ from pathlib import Path
 
 CONFIG_PATH = Path.home() / ".shortssplit.json"
 
+# Supported media file extensions for input validation
+VALID_EXTS = {".mp4", ".mov", ".mkv", ".webm", ".avi"}
+
 
 def check_ffmpeg() -> None:
     """Ensure ffmpeg and ffprobe are available."""
     for tool in ("ffmpeg", "ffprobe"):
         if not shutil.which(tool):
-            raise EnvironmentError(f"'{tool}' not found in PATH")
+            raise EnvironmentError(
+                f"'{tool}' not found in PATH. Install from https://ffmpeg.org"
+            )
 
 
 def probe_duration(path: Path) -> float:
@@ -37,6 +42,15 @@ def probe_duration(path: Path) -> float:
         raise RuntimeError(f"ffprobe failed: {result.stderr}")
     data = json.loads(result.stdout)
     return float(data["format"]["duration"])
+
+
+def validate_media(path: Path) -> None:
+    """Raise ``FileNotFoundError`` or ``ValueError`` if ``path`` is not a
+    supported media file."""
+    if not Path(path).exists():
+        raise FileNotFoundError(path)
+    if Path(path).suffix.lower() not in VALID_EXTS:
+        raise ValueError(f"Unsupported file type: {path}")
 
 
 def load_config() -> dict:
