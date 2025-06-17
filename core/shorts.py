@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 
 from .ffmpeg_handler import build_stack
-from .subtitle_utils import save_srt
+from .subtitle_utils import save_ass
 from .whisper_wrapper import transcribe
 
 
@@ -40,11 +40,11 @@ def generate_short(
     output_path = top_path.parent / "output.mp4"
 
     logging.info("Transcribing top clip: %s", top_path)
-    srt_lines = transcribe(top_path, model_size=model_size, device=device)
+    cues = transcribe(top_path, model_size=model_size, device=device)
 
-    with tempfile.NamedTemporaryFile(suffix=".srt", delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(suffix=".ass", delete=False) as tmp:
         subtitle_path = Path(tmp.name)
-        save_srt(srt_lines, subtitle_path)
+        save_ass(cues, subtitle_path)
 
     try:
         logging.info("Building stacked video -> %s", output_path)

@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 from faster_whisper import WhisperModel
 
@@ -11,8 +11,8 @@ _model_cache = {}
 
 def transcribe(
     path: Path, model_size: str = "base", device: str = "auto"
-) -> List[str]:
-    """Transcribe audio and return SRT lines.
+) -> List[Tuple[float, float, str]]:
+    """Transcribe audio and return subtitle cues.
 
     Each subtitle cue contains up to three words for readability and is timed
     using word-level timestamps.
@@ -73,23 +73,4 @@ def transcribe(
     # Sort cues by start time in case segments are not sequential
     cues.sort(key=lambda c: c[0])
 
-    srt_lines = []
-    for i, (start, end, text) in enumerate(cues, start=1):
-        srt_lines.extend(
-            [
-                f"{i}",
-                f"{_format_time(start)} --> {_format_time(end)}",
-                text,
-                "",
-            ]
-        )
-    return srt_lines
-
-
-def _format_time(seconds: float) -> str:
-    """Format ``seconds`` as ``HH:MM:SS,mmm`` for SRT."""
-    ms_total = int(round(seconds * 1000))
-    hrs, ms_total = divmod(ms_total, 3600 * 1000)
-    mins, ms_total = divmod(ms_total, 60 * 1000)
-    secs, ms = divmod(ms_total, 1000)
-    return f"{hrs:02}:{mins:02}:{secs:02},{ms:03}"
+    return cues
