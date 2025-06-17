@@ -73,4 +73,7 @@ def transcribe(
     # Sort cues by start time in case segments are not sequential
     cues.sort(key=lambda c: c[0])
 
+    if not cues:
+        logging.warning("No speech detected in top clip")
+
     return cues
