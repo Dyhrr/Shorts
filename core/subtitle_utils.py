@@ -1,49 +1,63 @@
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Tuple
+
+DEFAULT_STYLE: Dict[str, str | int] = {
+    "FontName": "Arial",
+    "FontSize": 36,
+    "PrimaryColour": "&H00FFFFFF",
+    "OutlineColour": "&H00000000",
+    "BorderStyle": 1,
+    "Outline": 2,
+    "Shadow": 0,
+    "Alignment": 2,
+}
 
 
-def load_srt(path: Path) -> List[str]:
-    """Load SRT file lines."""
-    return path.read_text(encoding="utf-8").splitlines()
+def save_ass(
+    cues: List[Tuple[float, float, str]],
+    out_path: Path,
+    style: Dict[str, str | int] | None = None,
+) -> None:
+    """Write subtitle ``cues`` to ``out_path`` in ASS format."""
+    if style is None:
+        style = DEFAULT_STYLE
 
+    lines = [
+        "[Script Info]",
+        "ScriptType: v4.00+",
+        "",
+        "[V4+ Styles]",
+        (
+            "Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,"
+            "OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,"
+            "ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,"
+            "Alignment,MarginL,MarginR,MarginV,Encoding"
+        ),
+        (
+            f"Style: Default,{style['FontName']},{style['FontSize']},"
+            f"{style['PrimaryColour']},&H00000000,{style['OutlineColour']},"
+            "&H00000000,0,0,0,0,100,100,0,0,"
+            f"{style['BorderStyle']},{style['Outline']},{style['Shadow']},"
+            f"{style['Alignment']},10,10,10,1"
+        ),
+        "",
+        "[Events]",
+        "Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text",
+    ]
 
-def save_srt(lines: List[str], out_path: Path) -> None:
+    for start, end, text in cues:
+        lines.append(
+            f"Dialogue: 0,{_format_time(start)},{_format_time(end)},Default,,0,0,0,,{text}"
+        )
+
     out_path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def cap_words_per_cue(
-    cues: List[Tuple[float, float, str]], max_words: int = 3
-) -> List[Tuple[float, float, str]]:
-    """Split cue text so each cue has at most ``max_words`` words.
+def _format_time(seconds: float) -> str:
+    """Return ASS-formatted timestamp ``H:MM:SS.cc``."""
+    cs_total = int(round(seconds * 100))
+    hrs, cs_total = divmod(cs_total, 3600 * 100)
+    mins, cs_total = divmod(cs_total, 60 * 100)
+    secs, cs = divmod(cs_total, 100)
+    return f"{hrs}:{mins:02}:{secs:02}.{cs:02}"
 
-    Parameters
-    ----------
-    cues:
-        List of ``(start_time, end_time, text)`` tuples.
-    max_words:
-        Maximum number of words allowed per cue.
-
-    Returns
-    -------
-    list of tuples
-        New cues with evenly distributed timings.
-    """
-
-    new_cues: List[Tuple[float, float, str]] = []
-    for start, end, text in cues:
-        words = text.split()
-        if len(words) <= max_words:
-            new_cues.append((start, end, text))
-            continue
-
-        n_chunks = (len(words) + max_words - 1) // max_words
-        duration = (end - start) / n_chunks
-
-        for i in range(n_chunks):
-            chunk_words = words[i * max_words : (i + 1) * max_words]
-            chunk_text = " ".join(chunk_words)
-            chunk_start = start + i * duration
-            chunk_end = start + (i + 1) * duration
-            new_cues.append((chunk_start, chunk_end, chunk_text))
-
-    return new_cues

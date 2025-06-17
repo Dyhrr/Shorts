@@ -11,8 +11,6 @@ def build_stack(
     bottom: Path,
     subtitle: Path,
     out_path: Path,
-    font_size: int = 24,
-    font_color: str = "white",
 ) -> None:
     """Create the stacked video with subtitles burned into the top clip."""
     duration = probe_duration(top)
@@ -21,16 +19,8 @@ def build_stack(
     sub_path = subtitle.as_posix()
     sub_path = re.sub(r'^([A-Za-z]):', r'\1\\:', sub_path, count=1)
 
-    # Subtitle styling
-    style = (
-        f"Fontsize={font_size},"
-        f"PrimaryColour=&H{_color_hex(font_color)}&,"
-        "Alignment=2,"
-        "OutlineColour=&H000000&,"
-        "BorderStyle=1,"
-        "Outline=2"
-    )
-    sub_filter = f"subtitles=filename='{sub_path}':force_style='{style}'"
+    # ASS subtitles
+    sub_filter = f"ass='{sub_path}'"
 
     # Scale→crop→subtitles on top; scale→crop→trim→setpts on bottom; then vstack
     filter_complex = (
@@ -63,12 +53,3 @@ def build_stack(
         logging.debug(result.stderr.decode())
         subprocess.run(cmd_x264, check=True)
 
-
-def _color_hex(name: str) -> str:
-    colors = {
-        "white":  "FFFFFF",
-        "black":  "000000",
-        "yellow": "FFFF00",
-        "red":    "FF0000",
-    }
-    return colors.get(name.lower(), "FFFFFF")
