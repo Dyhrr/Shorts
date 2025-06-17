@@ -32,7 +32,7 @@ from pathlib import Path
 
 from core import generate_short, load_config, save_config
 from core.utils import VALID_EXTS
-from core.subtitle_utils import DEFAULT_STYLE
+from core.subtitle_utils import DEFAULT_STYLE, hex_to_ass
 
 
 def resource_path(name: str) -> Path:
@@ -104,12 +104,13 @@ class Worker(QObject):
     progress = Signal(str)
     finished = Signal(bool, str)
 
-    def __init__(self, top: str, bottom: str, out: str | None, res: tuple[int, int]):
+    def __init__(self, top: str, bottom: str, out: str | None, res: tuple[int, int], style: dict | None):
         super().__init__()
         self.top = top
         self.bottom = bottom
         self.out = out
         self.res = res
+        self.style = style
 
     @Slot()
     def run(self) -> None:
@@ -120,6 +121,7 @@ class Worker(QObject):
                 output_path=self.out,
                 progress=self.progress.emit,
                 resolution=self.res,
+                style=self.style,
             )
             self.finished.emit(True, "")
         except Exception as exc:  # pragma: no cover - runtime feedback
@@ -133,6 +135,8 @@ class MainWindow(QWidget):
         self.theme = self.config.get("theme", "dark")
         self.colors = THEMES.get(self.theme, THEMES["dark"])
         self.resolution = self.config.get("resolution", "1080x1920")
+        self.subtitle_font = self.config.get("font", DEFAULT_STYLE["FontName"])
+        self.subtitle_color = self.config.get("color", "#FFFFFF")
 
         self.setAcceptDrops(True)
         self.setWindowTitle("ShortsSplit 🐢")
@@ -276,7 +280,7 @@ class MainWindow(QWidget):
             self.create_btn.setEnabled(False)
 
         self.thread = QThread(self)
-        self.worker = Worker(top, bottom, out, self._resolution_tuple())
+        self.worker = Worker(top, bottom, out, self._resolution_tuple(), self.subtitle_style())
         self.worker.moveToThread(self.thread)
         self.worker.progress.connect(self.update_status)
         self.worker.finished.connect(self._on_thread_finished)
@@ -310,6 +314,14 @@ class MainWindow(QWidget):
         res_box.addItems(["1080x1920", "720x1280"])
         res_box.setCurrentText(self.resolution)
         layout.addWidget(res_box)
+
+        layout.addWidget(QLabel("Subtitle Font"))
+        font_edit = QLineEdit(self.subtitle_font)
+        layout.addWidget(font_edit)
+
+        layout.addWidget(QLabel("Subtitle Color (#RRGGBB)"))
+        color_edit = QLineEdit(self.subtitle_color)
+        layout.addWidget(color_edit)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         layout.addWidget(buttons)
 
@@ -320,6 +332,10 @@ class MainWindow(QWidget):
             self.config["theme"] = self.theme
             self.resolution = res_box.currentText()
             self.config["resolution"] = self.resolution
+            self.subtitle_font = font_edit.text() or DEFAULT_STYLE["FontName"]
+            self.subtitle_color = color_edit.text() or "#FFFFFF"
+            self.config["font"] = self.subtitle_font
+            self.config["color"] = self.subtitle_color
             save_config(self.config)
             dialog.accept()
 
@@ -348,6 +364,15 @@ class MainWindow(QWidget):
             self.bottom_label.setText(f"Bottom clip: {files[1]}")
             self.config["bottom_clip"] = files[1]
         save_config(self.config)
+
+    def subtitle_style(self) -> dict:
+        style = DEFAULT_STYLE.copy()
+        style["FontName"] = self.subtitle_font
+        try:
+            style["PrimaryColour"] = hex_to_ass(self.subtitle_color)
+        except ValueError:
+            style["PrimaryColour"] = DEFAULT_STYLE["PrimaryColour"]
+        return style
 
     def _resolution_tuple(self) -> tuple[int, int]:
         try:

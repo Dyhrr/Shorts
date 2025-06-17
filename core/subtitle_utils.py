@@ -61,3 +61,13 @@ def _format_time(seconds: float) -> str:
     secs, cs = divmod(cs_total, 100)
     return f"{hrs}:{mins:02}:{secs:02}.{cs:02}"
 
+
+def hex_to_ass(color: str) -> str:
+    """Return ASS ``PrimaryColour`` from ``#RRGGBB`` ``color``."""
+    if color.startswith("#"):
+        color = color[1:]
+    if len(color) != 6:
+        raise ValueError("Color must be in #RRGGBB format")
+    r, g, b = color[0:2], color[2:4], color[4:6]
+    return f"&H00{b}{g}{r}"
+
