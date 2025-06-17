@@ -60,8 +60,13 @@ def main() -> int:
         return 1
 
     cfg = load_config()
-    top = args.top or cfg.get("top_clip")
-    bottom = args.bottom or cfg.get("bottom_clip")
+    if args.top and args.bottom:
+        top = args.top
+        bottom = args.bottom
+    else:
+        # No CLI args, launch GUI
+        return run_app()
+
     res_str = args.resolution or cfg.get("resolution", "1080x1920")
     try:
         resolution = parse_resolution(res_str)
