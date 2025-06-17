@@ -10,6 +10,11 @@ It uses [`faster-whisper`](https://github.com/guillaumekln/faster-whisper) for t
 - 🪞 Bottom clip loops or trims to match top duration automatically
 - 🔊 Audio only from top clip, normalized to not blow ears out
 - 🌗 Light/dark mode toggle (for when you're feeling emo)
+- 💾 Remembers last used clips and settings
+- 🎨 Custom subtitle style options
+- 🗄️ Choose output file name and location
+- 📣 Simple progress messages while processing
+- 🔗 Settings panel for YouTube/TikTok links
 
 ## 🧪 Requirements
 - Python 3.10+
@@ -41,7 +46,8 @@ Top = voice or interview (this gets transcribed)
 
 Bottom = gameplay or background loop
 
-Hit Create, and you’ll get output.mp4 in the same folder as the top clip.
+Hit Create and the video is written to your chosen output file (defaults to
+`output.mp4` next to the top clip).
 
 ## 📑 Function Overview
 
@@ -50,7 +56,7 @@ Below is a quick reference of the main Python functions used by ShortsSplit.
 ### Fully Working
 
 - `run_app()` – launches the PySide6 interface.
-- `generate_short(top, bottom, model_size="base", device="auto")` – handles transcription and video stacking, returning the path to `output.mp4`.
+- `generate_short(top, bottom, model_size="base", device="auto", style=None, output_path=None, progress=None)` – handles transcription and video stacking, returning the path to the created video.
 - `build_stack(top, bottom, subtitle, out_path)` – calls FFmpeg to stack the clips and burn the subtitles. It tries GPU encoding first and falls back to CPU when necessary.
 - `transcribe(path, model_size="base", device="auto")` – uses `faster-whisper` to create short subtitle cues from the audio track.
 - `save_ass(cues, out_path, style=None)` – writes subtitle cues to an ASS file with a default style.
