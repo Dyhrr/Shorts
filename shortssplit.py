@@ -8,6 +8,29 @@ from core.utils import check_ffmpeg
 from ui.mainwindow import run_app
 
 
+def parse_resolution(value: str) -> tuple[int, int]:
+    """Return width/height tuple from ``value``.
+
+    Parameters
+    ----------
+    value:
+        String in ``WIDTHxHEIGHT`` format (e.g. ``"1080x1920"``).
+
+    Raises
+    ------
+    ValueError
+        If ``value`` is not in the expected format or contains non-numeric
+        values.
+    """
+    try:
+        w, h = value.lower().split("x")
+        return int(w), int(h)
+    except Exception as exc:  # pragma: no cover - user input validation
+        raise ValueError(
+            f"Invalid resolution '{value}'. Use WIDTHxHEIGHT like 1080x1920"
+        ) from exc
+
+
 def main() -> int:
     """Run ShortsSplit either via the GUI or the command line."""
     parser = argparse.ArgumentParser(description="Create vertical shorts")
@@ -39,7 +62,12 @@ def main() -> int:
     cfg = load_config()
     top = args.top or cfg.get("top_clip")
     bottom = args.bottom or cfg.get("bottom_clip")
-    resolution = args.resolution or cfg.get("resolution", "1080x1920")
+    res_str = args.resolution or cfg.get("resolution", "1080x1920")
+    try:
+        resolution = parse_resolution(res_str)
+    except ValueError as exc:
+        print(exc)
+        return 1
 
     style = {}
     if args.font:
@@ -60,9 +88,9 @@ def main() -> int:
             style=style,
             output_path=args.output,
             progress=print,
-            resolution=tuple(int(x) for x in resolution.lower().split("x")),
+            resolution=resolution,
         )
-        save_config({"top_clip": top, "bottom_clip": bottom, "resolution": resolution})
+        save_config({"top_clip": top, "bottom_clip": bottom, "resolution": res_str})
         print(out)
         return 0
 
