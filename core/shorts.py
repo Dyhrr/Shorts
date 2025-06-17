@@ -8,6 +8,7 @@ from typing import Callable, Dict
 
 from .ffmpeg_handler import build_stack
 from .subtitle_utils import save_ass
+from .utils import validate_media
 from .whisper_wrapper import transcribe
 
 
@@ -42,6 +43,8 @@ def generate_short(
     """
     top_path = Path(top)
     bottom_path = Path(bottom)
+    validate_media(top_path)
+    validate_media(bottom_path)
     if output_path is None:
         output_path = top_path.parent / "output.mp4"
     else:
