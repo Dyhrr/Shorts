@@ -14,11 +14,23 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QGraphicsDropShadowEffect
 )
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, QTimer
+from PySide6.QtCore import (
+    Qt,
+    QPropertyAnimation,
+    QEasingCurve,
+    QRect,
+    QTimer,
+    QThread,
+    QObject,
+    Signal,
+    Slot,
+)
 from PySide6.QtGui import QFont, QColor, QPixmap
 import random
+from pathlib import Path
 
 from core import generate_short, load_config, save_config
+from core.utils import VALID_EXTS
 from core.subtitle_utils import DEFAULT_STYLE
 
 THEMES = {
@@ -76,6 +88,34 @@ class AnimatedButton(QPushButton):
         self._anim.start()
         super().leaveEvent(e)
 
+
+class Worker(QObject):
+    """Background worker to run ``generate_short`` in a thread."""
+
+    progress = Signal(str)
+    finished = Signal(bool, str)
+
+    def __init__(self, top: str, bottom: str, out: str | None, res: tuple[int, int]):
+        super().__init__()
+        self.top = top
+        self.bottom = bottom
+        self.out = out
+        self.res = res
+
+    @Slot()
+    def run(self) -> None:
+        try:
+            generate_short(
+                self.top,
+                self.bottom,
+                output_path=self.out,
+                progress=self.progress.emit,
+                resolution=self.res,
+            )
+            self.finished.emit(True, "")
+        except Exception as exc:  # pragma: no cover - runtime feedback
+            self.finished.emit(False, str(exc))
+
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -98,7 +138,8 @@ class MainWindow(QWidget):
         # Logo in the top-left corner
         header = QHBoxLayout()
         logo_label = QLabel(self)
-        logo_pix = QPixmap("/ui/Logo.png")  # TODO: replace with your logo path
+        logo_path = Path(__file__).with_name("Logo.png")
+        logo_pix = QPixmap(str(logo_path))
         logo_pix = logo_pix.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         logo_label.setPixmap(logo_pix)
         header.addWidget(logo_label, alignment=Qt.AlignLeft)
@@ -135,6 +176,7 @@ class MainWindow(QWidget):
 
         # Animated buttons
         self.buttons = []
+        self.create_btn = None
         btn_defs = [
             ("🎥 Load Top Clip", lambda: self.load_file("top")),
             ("📼 Load Bottom Clip", lambda: self.load_file("bottom")),
@@ -148,6 +190,8 @@ class MainWindow(QWidget):
             btn.setCursor(Qt.PointingHandCursor)
             layout.addWidget(btn)
             self.buttons.append(btn)
+            if text == "⚙️ Create Shorts Video":
+                self.create_btn = btn
             self.fade_in(btn, delay=900 + i*150)
 
         self.top_label = QLabel("Top clip: none")
@@ -157,6 +201,10 @@ class MainWindow(QWidget):
         self.bottom_label = QLabel("Bottom clip: none")
         self.bottom_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.bottom_label)
+
+        self.output_label = QLabel("Output file: none")
+        self.output_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.output_label)
 
         self.status_label = QLabel("")
         self.status_label.setAlignment(Qt.AlignCenter)
@@ -171,8 +219,17 @@ class MainWindow(QWidget):
                 label = self.top_label if clip == "top" else self.bottom_label
                 label.setText(f"{clip.capitalize()} clip: {clip_path}")
 
+        if out_path := self.config.get("output_path"):
+            self.output_path = out_path
+            self.output_label.setText(f"Output file: {out_path}")
+
     def load_file(self, which: str) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, f"Select {which} clip")
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            f"Select {which} clip",
+            "",
+            "Video Files (*.mp4 *.mov *.mkv *.webm *.avi)",
+        )
         if not path:
             return
         setattr(self, f"{which}_clip", path)
@@ -187,6 +244,9 @@ class MainWindow(QWidget):
         )
         if path:
             self.output_path = path
+            self.output_label.setText(f"Output file: {path}")
+            self.config["output_path"] = path
+            save_config(self.config)
 
     def update_status(self, msg: str) -> None:
         self.status_label.setText(msg)
@@ -199,19 +259,29 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "Missing clips", "Load both clips first")
             return
         out = getattr(self, "output_path", None)
-        try:
-            generate_short(
-                top,
-                bottom,
-                output_path=out,
-                progress=self.update_status,
-                resolution=self._resolution_tuple(),
-            )
+
+        if self.create_btn is not None:
+            self.create_btn.setEnabled(False)
+
+        self.thread = QThread(self)
+        self.worker = Worker(top, bottom, out, self._resolution_tuple())
+        self.worker.moveToThread(self.thread)
+        self.worker.progress.connect(self.update_status)
+        self.worker.finished.connect(self._on_thread_finished)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.thread.start()
+
+    def _on_thread_finished(self, success: bool, error: str) -> None:
+        if success:
             QMessageBox.information(self, "Done", "Short created successfully")
-            self.status_label.setText("")
-        except Exception as exc:  # pragma: no cover - runtime feedback
-            QMessageBox.critical(self, "Error", str(exc))
-            self.status_label.setText("")
+        else:
+            QMessageBox.critical(self, "Error", error)
+        self.status_label.setText("")
+        if self.create_btn is not None:
+            self.create_btn.setEnabled(True)
 
     def open_settings(self) -> None:
         dialog = QDialog(self)
@@ -248,11 +318,13 @@ class MainWindow(QWidget):
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
-            event.acceptProposedAction()
+            urls = [u.toLocalFile() for u in event.mimeData().urls()]
+            if all(Path(p).suffix.lower() in VALID_EXTS for p in urls if p):
+                event.acceptProposedAction()
 
     def dropEvent(self, event):
         urls = [u.toLocalFile() for u in event.mimeData().urls()]
-        files = [p for p in urls if p]
+        files = [p for p in urls if p and Path(p).suffix.lower() in VALID_EXTS]
         if not files:
             return
         if len(files) >= 1:
