@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, QTimer
 from PySide6.QtGui import QFont, QColor, QPixmap
 import random
+from pathlib import Path
 
 from core import generate_short, load_config, save_config
 from core.subtitle_utils import DEFAULT_STYLE
@@ -98,7 +99,8 @@ class MainWindow(QWidget):
         # Logo in the top-left corner
         header = QHBoxLayout()
         logo_label = QLabel(self)
-        logo_pix = QPixmap("/ui/Logo.png")  # TODO: replace with your logo path
+        logo_path = Path(__file__).with_name("Logo.png")
+        logo_pix = QPixmap(str(logo_path))
         logo_pix = logo_pix.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         logo_label.setPixmap(logo_pix)
         header.addWidget(logo_label, alignment=Qt.AlignLeft)
