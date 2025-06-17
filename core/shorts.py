@@ -46,6 +46,7 @@ def generate_short(
         output_path = top_path.parent / "output.mp4"
     else:
         output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     if progress:
         progress("Transcribing...")
