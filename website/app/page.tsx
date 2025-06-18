@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Rocket, Layers3, Cpu, Terminal } from 'lucide-react'
 import Feature from '../components/Feature'
+'use client';
 
 const features = [
   {
