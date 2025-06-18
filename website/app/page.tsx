@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Rocket } from 'lucide-react'
@@ -5,7 +7,6 @@ import { Layers3 } from 'lucide-react'
 import { Cpu } from 'lucide-react'
 import { Terminal } from 'lucide-react'
 import Feature from '../components/Feature'
-'use client';
 
 const features = [
   {
