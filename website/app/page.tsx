@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Rocket, Layers3, Cpu, Terminal } from 'lucide-react'
+import { Rocket } from 'lucide-react'
+import { Layers3 } from 'lucide-react'
+import { Cpu } from 'lucide-react'
+import { Terminal } from 'lucide-react'
 import Feature from '../components/Feature'
 'use client';
 
