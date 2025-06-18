@@ -1,12 +1,9 @@
 'use client';
 
-import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { Rocket } from 'lucide-react'
-import { Layers3 } from 'lucide-react'
-import { Cpu } from 'lucide-react'
-import { Terminal } from 'lucide-react'
-import Feature from '../components/Feature'
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { Rocket, Layers3, Cpu, Terminal } from 'lucide-react';
+import Feature from '../components/Feature';
 
 const features = [
   {
@@ -24,7 +21,7 @@ const features = [
     title: 'Local & Offline',
     description: 'Runs completely offline with whisper-based transcription.'
   }
-]
+];
 
 export default function Home() {
   return (
@@ -51,5 +48,5 @@ export default function Home() {
         </Link>
       </motion.div>
     </main>
-  )
+  );
 }
